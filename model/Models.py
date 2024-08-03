@@ -30,10 +30,28 @@ class Point:
 class BorderPoint:
 
     def __init__(self):
-        self.arrays = []
+        self.border_line = None
 
     def values(self):
-        return self.arrays
+        return self.border_line
+
+    def transposition(self, positions):
+        minx = min(np.array(positions)[:, 0])
+        miny = min(np.array(positions)[:, 1])
+        if minx < miny:
+            positions = positions - minx + 4
+        else:
+            positions = positions - miny + 4
+
+        minx = min(np.array(positions)[:, 0])
+        miny = min(np.array(positions)[:, 1])
+
+        if minx > miny:
+            positions = [[x - minx + 4, y] for x, y in positions]
+        else:
+            positions = [[x, y - miny + 4] for x, y in positions]
+        return positions
+
 
     def create_line_border_all(self, positions):
         result = []
@@ -69,16 +87,15 @@ class BorderPoint:
                 unique_coordinates.append([x, y])
                 seen_coordinates.add((x, y))
 
-        self.arrays = unique_coordinates
         return unique_coordinates
 
-    def create_line_border(self, point=[]):
+    def create_line_border(self, point, border_line):
 
         line_top_left, line_top_right, line_bottom_right, line_bottom_left = [], [], [], []
-        min_point = [min(np.array(self.arrays)[:, 0]), min(np.array(self.arrays)[:, 1])]
-        max_point = [max(np.array(self.arrays)[:, 0]), max(np.array(self.arrays)[:, 1])]
+        min_point = [min(np.array(border_line)[:, 0]), min(np.array(border_line)[:, 1])]
+        max_point = [max(np.array(border_line)[:, 0]), max(np.array(border_line)[:, 1])]
 
-        for [x, y] in self.arrays:
+        for [x, y] in border_line:
             if x >= point[0] and y <= point[1]:
                 line_top_right.append([x, y])
 
@@ -94,8 +111,8 @@ class BorderPoint:
         for x in range(point[0], min_point[0] - 1, -1):
             for y in range(point[1], min_point[1] - 1, -1):
                 if x == point[0] or y == point[1]:  # là vị trí đường lưới
-                    arrX_item = [i for [i, j] in self.arrays if j == y]
-                    arrY_item = [j for [i, j] in self.arrays if i == x]
+                    arrX_item = [i for [i, j] in border_line if j == y]
+                    arrY_item = [j for [i, j] in border_line if i == x]
                     if arrY_item and arrX_item:
                         _x_ = [min(arrX_item), max(arrX_item)]
                         _y_ = [min(arrY_item), max(arrY_item)]
@@ -105,8 +122,8 @@ class BorderPoint:
         for x in range(point[0], max_point[0] + 1, 1):
             for y in range(point[1], min_point[1] - 1, -1):
                 if (x == point[0] or y == point[1]):  # là vị trí đường lưới
-                    arrX_item = [i for [i, j] in self.arrays if j == y]
-                    arrY_item = [j for [i, j] in self.arrays if i == x]
+                    arrX_item = [i for [i, j] in border_line if j == y]
+                    arrY_item = [j for [i, j] in border_line if i == x]
                     if arrY_item and arrX_item:
                         _x_ = [min(arrX_item), max(arrX_item)]
                         _y_ = [min(arrY_item), max(arrY_item)]
@@ -116,8 +133,8 @@ class BorderPoint:
         for x in range(point[0], max_point[0]):
             for y in range(point[1], max_point[1]):
                 if (x == point[0] or y == point[1]):  # là vị trí đường lưới
-                    arrX_item = [i for [i, j] in self.arrays if j == y]
-                    arrY_item = [j for [i, j] in self.arrays if i == x]
+                    arrX_item = [i for [i, j] in border_line if j == y]
+                    arrY_item = [j for [i, j] in border_line if i == x]
                     if arrY_item and arrX_item:
                         _x_ = [min(arrX_item), max(arrX_item)]
                         _y_ = [min(arrY_item), max(arrY_item)]
@@ -127,8 +144,8 @@ class BorderPoint:
         for x in range(point[0], min_point[0] - 1, -1):
             for y in range(point[1], max_point[1] + 1, 1):
                 if (x == point[0] or y == point[1]):  # là vị trí đường lưới
-                    arrX_item = [i for [i, j] in self.arrays if j == y]
-                    arrY_item = [j for [i, j] in self.arrays if i == x]
+                    arrX_item = [i for [i, j] in border_line if j == y]
+                    arrY_item = [j for [i, j] in border_line if i == x]
                     if arrY_item and arrX_item:
                         _x_ = [min(arrX_item), max(arrX_item)]
                         _y_ = [min(arrY_item), max(arrY_item)]
@@ -140,17 +157,24 @@ class BorderPoint:
 
 class Matrix:
 
-    def __init__(self, x=0, y=0):
-        self.matrix = np.empty((x + 4, y + 4, 4))
+    def __init__(self, border_line, trung_diem, grid_size):
+        self.border_line = border_line
+        self.trung_diem = trung_diem
+        self.grid_size = grid_size
+
+        self.matrix = np.empty((max(np.array(border_line)[:,0]) + 4, max(np.array(border_line)[:,1]) + 4, 4))
 
     def values(self):
         return self.matrix
 
-    def create_matrix(self, trung_diem, grid_size, border1, border2, border3, border4):
+    def create_matrix(self):
+
+        bd_point = BorderPoint()
+        border1, border2, border3, border4 = bd_point.create_line_border(self.trung_diem, self.border_line)
 
         # top left
-        for x in range(0, trung_diem[0] + 1):
-            for y in range(0, trung_diem[1] + 1):
+        for x in range(0, self.trung_diem[0] + 1):
+            for y in range(0, self.trung_diem[1] + 1):
                 self.matrix[x, y, 0] = x
                 self.matrix[x, y, 1] = y
                 self.matrix[x, y, 2] = -1
@@ -162,14 +186,14 @@ class Matrix:
                     mmy_ = [min(arrY_item), max(arrY_item)]
                     if ((x >= mmx_[0]) and (x <= mmx_[1])) and ((mmy_[0] <= y) and (y <= mmy_[1])):  # bên trong
                         self.matrix[x, y, 2] = 0
-                        if (trung_diem[0] - x) % grid_size[0] == 0 or (trung_diem[1] - y) % grid_size[1] == 0:
+                        if (self.trung_diem[0] - x) % self.grid_size[0] == 0 or (self.trung_diem[1] - y) % self.grid_size[1] == 0:
                             self.matrix[x, y, 2] = 1
                         elif [x, y] in border1:
                             self.matrix[x, y, 2] = 1
         print(1)
         # top right
-        for x in range(trung_diem[0], self.matrix.shape[0]):
-            for y in range(0, trung_diem[1] + 1):
+        for x in range(self.trung_diem[0], self.matrix.shape[0]-1):
+            for y in range(0, self.trung_diem[1] + 1):
                 self.matrix[x, y, 0] = x
                 self.matrix[x, y, 1] = y
                 self.matrix[x, y, 2] = -1
@@ -181,14 +205,14 @@ class Matrix:
                     mmy_ = [min(arrY_item), max(arrY_item)]
                     if ((x >= mmx_[0]) and (x <= mmx_[1])) and ((mmy_[0] <= y) and (y <= mmy_[1])):  # bên trong
                         self.matrix[x, y, 2] = 0
-                        if (trung_diem[0] - x) % grid_size[0] == 0 or (trung_diem[1] - y) % grid_size[1] == 0:
+                        if (self.trung_diem[0] - x) % self.grid_size[0] == 0 or (self.trung_diem[1] - y) % self.grid_size[1] == 0:
                             self.matrix[x, y, 2] = 1
                         elif [x, y] in border2:
                             self.matrix[x, y, 2] = 1
         print(2)
         # bottom right
-        for x in range(trung_diem[0], self.matrix.shape[0]):
-            for y in range(trung_diem[1], self.matrix.shape[1]):
+        for x in range(self.trung_diem[0], self.matrix.shape[0]):
+            for y in range(self.trung_diem[1], self.matrix.shape[1]):
                 self.matrix[x, y, 0] = x
                 self.matrix[x, y, 1] = y
                 self.matrix[x, y, 2] = -1
@@ -200,14 +224,14 @@ class Matrix:
                     mmy_ = [min(arrY_item), max(arrY_item)]
                     if ((x >= mmx_[0]) and (x <= mmx_[1])) and ((mmy_[0] <= y) and (y <= mmy_[1])):  # bên trong
                         self.matrix[x, y, 2] = 0
-                        if (trung_diem[0] - x) % grid_size[0] == 0 or (trung_diem[1] - y) % grid_size[1] == 0:
+                        if (self.trung_diem[0] - x) % self.grid_size[0] == 0 or (self.trung_diem[1] - y) % self.grid_size[1] == 0:
                             self.matrix[x, y, 2] = 1
                         elif [x, y] in border3:
                             self.matrix[x, y, 2] = 1
         print(3)
         # top left
-        for x in range(0, trung_diem[0] + 1):
-            for y in range(trung_diem[1], self.matrix.shape[1]):
+        for x in range(0, self.trung_diem[0] + 1):
+            for y in range(self.trung_diem[1], self.matrix.shape[1]):
                 self.matrix[x, y, 0] = x
                 self.matrix[x, y, 1] = y
                 self.matrix[x, y, 2] = -1
@@ -219,12 +243,21 @@ class Matrix:
                     mmy_ = [min(arrY_item), max(arrY_item)]
                     if ((x >= mmx_[0]) and (x <= mmx_[1])) and ((mmy_[0] <= y) and (y <= mmy_[1])):  # bên trong
                         self.matrix[x, y, 2] = 0
-                        if (trung_diem[0] - x) % grid_size[0] == 0 or (trung_diem[1] - y) % grid_size[1] == 0:
+                        if (self.trung_diem[0] - x) % self.grid_size[0] == 0 or (self.trung_diem[1] - y) % self.grid_size[1] == 0:
                             self.matrix[x, y, 2] = 1
                         elif [x, y] in border4:
                             self.matrix[x, y, 2] = 1
+
         print(4, 'DONE !')
         print(self.matrix.shape)
+
+        # Lấy các góc
+        corners = self.take_all_corners()
+        # Cập nhật các góc có giá trị 2
+        self.add_corners_to_matrix(corners)
+        # Đánh dấu cho phần thịt
+        self.matrix = self.label_group_for_0()
+
         return self.matrix
 
     def take_all_corners(self):
@@ -407,52 +440,7 @@ class Matrix:
         return result_22
 
 
-# class Core:
-#
-#     def __init__(self):
-#         """ Gồm có 3 loại core (core 90 độ, core 180 độ và core 360 độ) """
-#
-#         self.core90 = []
-#         self.core180 = []
-#         self.core360 = []
-#
-#     def create_core(self, matrix):
-#
-#         ''' input: ma trận đã được phân loại đỉnh, cạnh và thịt '''
-#
-#         shape_res = np.array(matrix).shape
-#         res = matrix
-#         for i in range(0, shape_res[0]):
-#             for j in range(0, shape_res[1]):
-#                 cell = res[i][j]
-#                 x, y, v, g = cell
-#                 if v == 2:
-#                     if (i > 0 and j > 0) and (i < shape_res[0] - 1 and j < shape_res[1] - 1):
-#                         # cv2.line(image, (x,y), (x,y), (0,0,0), 5)
-#                         lenght = 0
-#                         if res[i - 1][j][2] == 1:  # trai
-#                             lenght += 1
-#                         if res[i + 1][j][2] == 1:  # phai
-#                             lenght += 1
-#                         if res[i][j - 1][2] == 1:  # duoi
-#                             lenght += 1
-#                         if res[i][j + 1][2] == 1:  # tren
-#                             lenght += 1
-#
-#                         if lenght == 2:
-#                             self.core90.append([x, y])
-#                         elif lenght == 3:
-#                             self.core180.append([x, y])
-#                         elif lenght == 4:
-#                             self.core360.append([x, y])
-#
-#         return self.core90, self.core180, self.core360
-#
-#     def values(self):
-#         return self.core90, self.core180, self.core360
-
-
-class Core:
+class Cross:
 
     def __init__(self, point):
         self.point = point
@@ -495,71 +483,80 @@ class Core:
         """ POINT, TOP, RIGHT, BOTTOM, LEFT """
         return [self.point, self.TOP, self.RIGHT, self.BOTTOM, self.LEFT]
 
-    def show(self):
-        strings = f"{self.point}: "
-        if self.TOP:
-            strings += "TOP, "
-        if self.BOTTOM:
-            strings += "BOTTOM, "
-        if self.LEFT:
-            strings += "LEFT, "
-        if self.RIGHT:
-            strings += "RIGHT, "
-        print(strings)
+    def __str__(self):
+        return f'p:{self.point}, cross: {self.getcore(self.point)}, top:{self.TOP}, right:{self.RIGHT}, bottom:{self.BOTTOM}, left:{self.LEFT}'
 
-class ListCore:
+    def show(self):
+        strings = f"{self.point}: {self.getcore(self.point)} =>"
+        if self.TOP:
+            strings += "TOP "
+        if self.BOTTOM:
+            strings += "BOTTOM "
+        if self.LEFT:
+            strings += "LEFT "
+        if self.RIGHT:
+            strings += "RIGHT "
+        return strings
+
+class ListCross:
 
     def __init__(self):
-        self.cores = []
+        self.cross = []
 
     def values(self):
-        return self.cores
+        return self.cross
 
-    def create_cores(self, matrix, start, end):
-        self.cores = []
+    def create_cross(self, matrix, shape_pieces_1, shape_pieces_2):
+        self.cross = []
+        [start, end] = [[min(np.array(shape_pieces_1)[:, 0] - 1), min(np.array(shape_pieces_1)[:, 1] - 1)],
+                         [max(np.array(shape_pieces_2)[:, 0] + 1), max(np.array(shape_pieces_2)[:, 1] + 1)]]
+
         mt_temp = np.empty((matrix.shape[0], matrix.shape[1], 4))
         mt_temp[start[0]+1:end[0], start[1]+1:end[1]] = matrix[start[0]+1:end[0], start[1]+1:end[1]]
 
         for x in range(0, mt_temp.shape[0]):
             for y in range(0, mt_temp.shape[1]):
                 if mt_temp[x, y, 2] == 2:
-                    core = Core([int(mt_temp[x, y, 0]), int(mt_temp[x, y, 1])])
+                    cross = Cross([int(mt_temp[x, y, 0]), int(mt_temp[x, y, 1])])
                     cell_trai = mt_temp[x - 1, y]
                     cell_phai = mt_temp[x + 1, y]
                     cell_duoi = mt_temp[x, y + 1]
                     cell_tren = mt_temp[x, y - 1]
 
                     if cell_trai[2] == 1:
-                        core.set_left(True)
+                        cross.set_left(True)
                     if cell_phai[2] == 1:
-                        core.set_right(True)
+                        cross.set_right(True)
                     if cell_duoi[2] == 1:
-                        core.set_bottom(True)
+                        cross.set_bottom(True)
                     if cell_tren[2] == 1:
-                        core.set_top(True)
+                        cross.set_top(True)
 
-                    self.cores.append(core)
+                    self.cross.append(cross)
 
-        return self.cores
+        return self.cross
 
     def find_core(self, point):
-        for core in self.cores:
+        for core in self.cross:
             if point[0] == core.point[0] and point[1] == core.point[1]:
                 return core
 
-    def find_state_and_group(self, states_sort, group_int):
-        res = []
-        for arr in states_sort:
-            for x, y, v, g in arr:
-                if g == group_int:
-                    res.append([int(x), int(y)])
-        return res
+
 
 class State:
     def __init__(self, group):
         result_all = sorted(group, key=lambda x: x[3])
         result = [list(group) for key, group in groupby(result_all, key=lambda x: x[3])]
-        self.state = [[[x, y, v, g] for x, y, v, g in group] for group in result]
+        self.state = [[[int(x), int(y), int(v), int(g)] for x, y, v, g in group] for group in result]
+        self.state_sort = self.sort_state(self.state)
+
+    def find_group(self, group_int):
+        res = []
+        for arr in self.state_sort:
+            for x, y, v, g in arr:
+                if g == group_int:
+                    res.append([int(x), int(y)])
+        return res
 
     def sort_state(self, state):
         res = []
@@ -573,7 +570,6 @@ class State:
                         state.append(point)
                         points.remove(point)
                         break
-            # state.append(item)
             res.append(state)
         return res
 
